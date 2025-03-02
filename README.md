@@ -12,16 +12,20 @@ This repository contains tools for collecting and analyzing college basketball d
   - Conference information
   - Advanced metrics (adjusted offense/defense)
 - Exports data to Excel for further analysis
+- Predicts head-to-head matchup outcomes with score predictions
+- Interactive mode for comparing any two teams
 
 ## Getting Started
 
 ### Prerequisites
 
 ```bash
-pip install pandas requests
+pip install -r requirements.txt
 ```
 
 ### Usage
+
+#### Data Collection
 
 To fetch the current season's data:
 
@@ -34,6 +38,32 @@ This will:
 2. Process and clean the data
 3. Save it to an Excel file named `torvik_data_2025.xlsx`
 
+#### Head-to-Head Predictions
+
+To predict matchup outcomes:
+
+```python
+python head_to_head.py
+```
+
+This will:
+1. Load the team data from the Excel file
+2. Run predictions for sample matchups
+3. Enter interactive mode where you can input any two teams to compare
+
+## Prediction Model
+
+The head-to-head prediction model uses:
+- Adjusted offensive efficiency (adjoe)
+- Adjusted defensive efficiency (adjde)
+- Team power rating (barthag)
+- Win-loss record
+
+The model calculates:
+- Win probability for each team
+- Predicted score based on offensive and defensive efficiencies
+- Matchup advantages in key statistical areas
+
 ## Data Fields
 
 The exported data includes:
@@ -43,6 +73,9 @@ The exported data includes:
 - `record`: Win-loss record (e.g., "25-4")
 - `wins`: Number of wins (extracted from record)
 - `losses`: Number of losses (extracted from record)
+- `adjoe`: Adjusted offensive efficiency (points per 100 possessions)
+- `adjde`: Adjusted defensive efficiency (points allowed per 100 possessions)
+- `barthag`: Power rating (probability of beating average team)
 - Additional advanced metrics from Torvik's system
 
 ## Contributing
