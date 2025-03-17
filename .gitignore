@@ -1,4 +1,6 @@
 /team_data/*
 !/team_data/.gitkeep
 .DS_Store
-__pycache__/
+**/__pycache__/
+*.pyc
+/predictions

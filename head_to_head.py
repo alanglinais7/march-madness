@@ -2,6 +2,8 @@ import pandas as pd
 import numpy as np
 from sklearn.preprocessing import StandardScaler
 from team_dictionary import get_teams_dictionary
+from datetime import datetime
+import os
 
 def load_team_data(file_path='torvik_data_2025.xlsx'):
     try:
@@ -137,7 +139,7 @@ def predict_winner(team1_name, team2_name, torvik_data=None, miya_data=None):
     # Load data if not provided
     if torvik_data is None:
         torvik_data = load_team_data()
-        if torvik_data is None or miya_data is None:
+        if torvik_data is None and miya_data is None:
             return {"error": "Could not load team data"}
     
     # Find teams in data
@@ -271,40 +273,69 @@ def print_matchup_results(results):
 
 # Example usage
 if __name__ == "__main__":
-    # Load data
+
+    #torvik data that feeds traditional metrics
     data = load_team_data()
+
+    #tournament teams stored in list and dict format (to add metrics to them)
     teams_dict = get_teams_dictionary()
     team_names = list(teams_dict.keys())
     teams_dict = load_miya_data(team_names, teams_dict)
 
+    #grab matchups to parse
+    matchups_df = pd.read_excel('matchups.xlsx')
+    results_df = matchups_df.copy()
+    
+    # Add columns for predicted winner and confidence
+    results_df['predicted_winner'] = None
+    results_df['confidence'] = None
 
-    if data is not None:
-
-        print(team_names)
-        print("\nEnter team names to predict a matchup (or 'quit' to exit):")
-        while True:
-            team1 = input("Team 1: ")
-            if team1.lower() == 'quit':
-                break
-                
-            team2 = input("Team 2: ")
-            if team2.lower() == 'quit':
-                break
-                
-            results = predict_winner(team1, team2, data)
-            print_matchup_results(results)
-
-
-
-        # Example matchups
-        # matchups = [
-        #     ("Houston", "Duke"),
-        #     ("Gonzaga", "Auburn"),
-        #     ("Alabama", "Purdue")
-        # ]
+    for index, row in matchups_df.iterrows():
+        team1 = row['team_1']
+        team2 = row['team_2']
+        seed1 = row['seed_1']
+        seed2 = row['seed_2']
         
-        # for team1, team2 in matchups:
-        #     results = predict_winner(team1, team2, data)
-        #     print_matchup_results(results)
-        
-        # Interactive mode
+        # Call the predict_winner function for each matchup
+        try:
+            prediction = predict_winner(team1, team2, data, teams_dict)
+            
+            # Store the prediction results
+            results_df.at[index, 'predicted_winner'] = prediction['prediction']['winner']
+            results_df.at[index, 'confidence'] = prediction['prediction']['win_probability']
+            
+            # Print progress
+            print(f"Processed matchup {index+1}/{len(matchups_df)}: {team1} ({seed1}) vs {team2} ({seed2})")
+            print(f"  Predicted winner: {prediction['prediction']['winner']} with {prediction['prediction']['win_probability']:.2%} confidence")
+        except Exception as e:
+            print(f"Error processing matchup {index+1}: {e}")
+
+    # Save the results to an Excel file in the predictions folder
+    # Create predictions directory if it doesn't exist
+    predictions_dir = "predictions"
+    if not os.path.exists(predictions_dir):
+        os.makedirs(predictions_dir)
+    
+    # Create filename with timestamp
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    output_file = os.path.join(predictions_dir, f'prediction_results_{timestamp}.xlsx')
+    
+    # Save the file
+    results_df.to_excel(output_file, index=False)
+    print(f"\nResults saved to {output_file}")
+
+    #optional interactive mode
+    # if data is not None:
+    #     print(team_names)
+    #     print("\nEnter team names to predict a matchup (or 'quit' to exit):")
+    #     while True:
+    #         team1 = input("Team 1: ")
+    #         if team1.lower() == 'quit':
+    #             break
+                
+    #         team2 = input("Team 2: ")
+    #         if team2.lower() == 'quit':
+    #             break
+                
+    #         results = predict_winner(team1, team2, data)
+    #         print_matchup_results(results)
