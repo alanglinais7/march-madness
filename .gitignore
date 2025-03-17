@@ -1,0 +1,4 @@
+/team_data/*
+!/team_data/.gitkeep
+.DS_Store
+__pycache__/

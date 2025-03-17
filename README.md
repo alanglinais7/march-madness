@@ -1,6 +1,6 @@
 # March Madness Data Analysis
 
-This repository contains tools for collecting and analyzing college basketball data, specifically focused on Bart Torvik's college basketball statistics (barttorvik.com).
+This repository contains tools for collecting and analyzing college basketball data, specifically focused on Bart Torvik's college basketball statistics (barttorvik.com) and Evan Miya's Game Analysis data (EvanMiya.com)
 
 ## Features
 
@@ -47,7 +47,7 @@ python head_to_head.py
 ```
 
 This will:
-1. Load the team data from the Excel file
+1. Load the team data from the Excel files
 2. Run predictions for sample matchups
 3. Enter interactive mode where you can input any two teams to compare
 
@@ -56,8 +56,15 @@ This will:
 The head-to-head prediction model uses:
 - Adjusted offensive efficiency (adjoe)
 - Adjusted defensive efficiency (adjde)
+- Tempo for # of possesions
 - Team power rating (barthag)
 - Win-loss record
+
+and some custom calcualted metrics
+- WORTH (Wins Over Ranked Tournament-Headed Squads)
+- PRIME (Performance Rating In Major Engagements) 
+- ROAD (Reliability Outside Accustomed Domain) 
+- NERVE (Narrow Endgame Resolution and Victory Evaluation)
 
 The model calculates:
 - Win probability for each team
@@ -80,7 +87,7 @@ The exported data includes:
 
 ## Contributing
 
-Feel free to open issues or submit pull requests with improvements.
+Feel free to open issues or submit pull requests with improvements. 
 
 ## License
 
@@ -88,4 +95,4 @@ This project is open source and available under the MIT License.
 
 ## Acknowledgments
 
-- Data sourced from [Bart Torvik's college basketball statistics](http://barttorvik.com) 
+- Data sourced from [Bart Torvik's college basketball statistics](http://barttorvik.com) and Evan Miya's website (https://evanmiya.com). You'll need a folder with all team's data stored in a folder called team_data. Ensure all schools with spaces are seperated by an underscore (i.e. Michigan State -> Michigan_State.csv)
