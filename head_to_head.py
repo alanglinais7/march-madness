@@ -1,6 +1,5 @@
 import pandas as pd
 import numpy as np
-from sklearn.preprocessing import StandardScaler
 from team_dictionary import get_teams_dictionary
 from datetime import datetime
 import os
@@ -8,13 +7,15 @@ import os
 def load_team_data(file_path='torvik_data_2025.xlsx'):
     try:
         df = pd.read_excel(file_path)
-        # print(f"Loaded data for {len(df)} teams")
         return df
     except Exception as e:
         print(f"Error loading team data: {e}")
         return None
 
 def grab_team_info(team_name):
+    """
+    Grabs Miya data from the team_data folder for the team name after changing it to the right format
+    """
     try:
         # Convert team name to filename format (replace spaces with underscores)
         filename = team_name.replace(" ", "_") + ".csv"
@@ -110,6 +111,12 @@ def calc_NERVE(team_name):
    
    return wins / len(close_games)
 
+def calc_TEMPO(team_name):
+    """
+    TO-DO: Calc tempo info from Miya
+    """
+    pass
+
 def load_miya_data(team_names, teams_dict):
     for team in team_names:
         try:
@@ -132,7 +139,8 @@ def predict_winner(team1_name, team2_name, torvik_data=None, miya_data=None):
     Args:
         team1_name (str): Name of the first team
         team2_name (str): Name of the second team
-        data (pd.DataFrame, optional): DataFrame containing team data     
+        torvik_data (pd.DataFrame, optional): DataFrame containing team data
+        miya_data (dict, optional): Dictionary containing MIYA metrics for teams
     Returns:
         dict: Dictionary containing prediction results
     """
@@ -143,78 +151,133 @@ def predict_winner(team1_name, team2_name, torvik_data=None, miya_data=None):
             return {"error": "Could not load team data"}
     
     # Find teams in data
-    team1 = torvik_data[torvik_data['team'].str.lower() == team1_name.lower()]
-    team2 = torvik_data[torvik_data['team'].str.lower() == team2_name.lower()]
+    team1_df = torvik_data[torvik_data['team'].str.lower() == team1_name.lower()]
+    team2_df = torvik_data[torvik_data['team'].str.lower() == team2_name.lower()]
     
     # Check if teams were found
-    if len(team1) == 0:
+    if len(team1_df) == 0:
         return {"error": f"Team '{team1_name}' not found in data"}
-    if len(team2) == 0:
+    if len(team2_df) == 0:
         return {"error": f"Team '{team2_name}' not found in data"}
     
     # Extract team data
-    team1 = team1.iloc[0]
-    team2 = team2.iloc[0]
-    
-    # Calculate win probability using a simple model
-    # This model uses adjusted offensive and defensive efficiency, plus win percentage
-    
-    # Feature extraction
-    features = ['adjoe', 'adjde', 'barthag']
-    
-    # Check if all features are available
-    for feature in features:
-        if feature not in torvik_data.columns:
-            return {"error": f"Required feature '{feature}' not found in data"}
+    team1 = team1_df.iloc[0]
+    team2 = team2_df.iloc[0]
     
     # Calculate win percentage
     team1_win_pct = team1['wins'] / (team1['wins'] + team1['losses'])
     team2_win_pct = team2['wins'] / (team2['wins'] + team2['losses'])
     
     # Calculate offensive and defensive advantages
-    # Higher offensive efficiency is better, lower defensive efficiency is better
-    offensive_advantage = team1['adjoe'] - team2['adjde']
-    defensive_advantage = team2['adjoe'] - team1['adjde']
+    team1_offense = team1['adjoe']
+    team1_defense = team1['adjde']
+    team2_offense = team2['adjoe']
+    team2_defense = team2['adjde']
     
-    # Calculate overall advantage using Barthag (power rating)
-    barthag_advantage = team1['barthag'] - team2['barthag']
+    # Calculate overall power rating advantage
+    team1_power = team1['barthag']
+    team2_power = team2['barthag']
+    power_diff = team1_power - team2_power
     
-    # Calculate win probability using a weighted model
-    # This is a simplified model for demonstration
+    # Get MIYA metrics if available
+    team1_worth = 0
+    team1_prime = 0
+    team1_road = 0
+    team1_nerve = 0
+    
+    team2_worth = 0
+    team2_prime = 0
+    team2_road = 0
+    team2_nerve = 0
+    
+    if miya_data is not None:
+        if team1_name in miya_data:
+            team1_worth = miya_data[team1_name].get('WORTH', 0)
+            team1_prime = miya_data[team1_name].get('PRIME', 0)
+            team1_road = miya_data[team1_name].get('ROAD', 0)
+            team1_nerve = miya_data[team1_name].get('NERVE', 0)
+        
+        if team2_name in miya_data:
+            team2_worth = miya_data[team2_name].get('WORTH', 0)
+            team2_prime = miya_data[team2_name].get('PRIME', 0)
+            team2_road = miya_data[team2_name].get('ROAD', 0)
+            team2_nerve = miya_data[team2_name].get('NERVE', 0)
+    
+    # Calculate win probability using absolute metrics instead of advantages
+    # This makes the model symmetric regardless of team order
     win_prob = 0.5 + (
-        0.2 * (team1_win_pct - team2_win_pct) +
-        0.3 * (offensive_advantage / 100) +
-        0.3 * (defensive_advantage / 100) +
-        0.2 * barthag_advantage
+        0.05 * (team1_win_pct - team2_win_pct) +
+        0.1 * ((team1_offense - team2_defense) / 100) +
+        0.1 * ((team2_offense - team1_defense) / -100) +
+        0.25 * power_diff +
+        0.05 * (team1_worth - team2_worth) +
+        0.15 * (team1_prime - team2_prime) +
+        0.05 * (team1_road - team2_road) +
+        0.05 * (team1_nerve - team2_nerve)
     )
     
     # Ensure probability is between 0 and 1
     win_prob = max(0.01, min(0.99, win_prob))
     
-    # Determine predicted score (simplified)
-    avg_team1_score = team1['adjoe'] * 0.01 * 70  # Assuming 70 possessions
-    avg_team2_score = team2['adjoe'] * 0.01 * 70
-    
-    # Adjust scores based on defensive ratings
-    team1_predicted_score = avg_team1_score * (100 / team2['adjde'])
-    team2_predicted_score = avg_team2_score * (100 / team1['adjde'])
-    
-    # Round scores to integers
-    team1_score = round(team1_predicted_score)
-    team2_score = round(team2_predicted_score)
+    # Calculate predicted scores
+    team1_predicted_score = round(team1_offense * 0.01 * 70 * (100 / team2_defense))
+    team2_predicted_score = round(team2_offense * 0.01 * 70 * (100 / team1_defense))
     
     # Ensure different scores (no ties)
-    if team1_score == team2_score:
+    if team1_predicted_score == team2_predicted_score:
         if win_prob > 0.5:
-            team1_score += 1
+            team1_predicted_score += 1
         else:
-            team2_score += 1
+            team2_predicted_score += 1
     
+    # For close games (win probability between 40% and 60%)
+    if win_prob > .4 and win_prob < .6:
+        # Calculate how close the game is (0 = exactly 50%, 1 = at 40% or 60%)
+        closeness = 1 - abs(win_prob - 0.5) / 0.1
+        
+        # Get advantage values
+        worth_advantage = team1_worth - team2_worth
+        prime_advantage = team1_prime - team2_prime
+        road_advantage = team1_road - team2_road
+        nerve_advantage = team1_nerve - team2_nerve
+        
+        # Apply WORTH adjustment - scale based on magnitude (max adjustment of 0.04)
+        worth_magnitude = min(abs(worth_advantage), 0.5)  # Cap at 0.5 difference
+        worth_adjustment = worth_magnitude * 0.08  # Scale to max of 0.04
+        if worth_advantage > 0:
+            win_prob += worth_adjustment
+        else:
+            win_prob -= worth_adjustment
+            
+        # Apply PRIME adjustment
+        prime_magnitude = min(abs(prime_advantage), 0.5)
+        prime_adjustment = prime_magnitude * 0.08
+        if prime_advantage > 0:
+            win_prob += prime_adjustment
+        else:
+            win_prob -= prime_adjustment
+            
+        # Apply NERVE adjustment
+        nerve_magnitude = min(abs(nerve_advantage), 0.5)
+        base_nerve_adjustment = 0.03 + (0.04 * closeness)
+        nerve_adjustment = base_nerve_adjustment * (0.5 + nerve_magnitude)
+        
+        if nerve_advantage > 0:
+            win_prob += nerve_adjustment
+        else:
+            win_prob -= nerve_adjustment
+
     # Determine winner
     winner = team1_name if win_prob > 0.5 else team2_name
     
-    # Return results
-    return {
+    # Determine which team's win probability to report
+    reported_win_prob = win_prob if winner == team1_name else 1 - win_prob
+    
+    # Format the score with winner first
+    predicted_score = f"{team1_predicted_score}-{team2_predicted_score}" if winner == team1_name else f"{team2_predicted_score}-{team1_predicted_score}"
+    
+    # Build the result dictionary
+    result = {
         "team1": {
             "name": team1_name,
             "rank": team1['rank'],
@@ -223,7 +286,7 @@ def predict_winner(team1_name, team2_name, torvik_data=None, miya_data=None):
             "adjoe": team1['adjoe'],
             "adjde": team1['adjde'],
             "barthag": team1['barthag'],
-            "predicted_score": team1_score
+            "predicted_score": team1_predicted_score
         },
         "team2": {
             "name": team2_name,
@@ -233,14 +296,31 @@ def predict_winner(team1_name, team2_name, torvik_data=None, miya_data=None):
             "adjoe": team2['adjoe'],
             "adjde": team2['adjde'],
             "barthag": team2['barthag'],
-            "predicted_score": team2_score
+            "predicted_score": team2_predicted_score
         },
         "prediction": {
             "winner": winner,
-            "win_probability": win_prob if winner == team1_name else 1 - win_prob,
-            "score": f"{team1_score}-{team2_score}" if winner == team1_name else f"{team2_score}-{team1_score}"
+            "win_probability": reported_win_prob,
+            "score": predicted_score,
+            "team1_win_probability": win_prob
         }
     }
+    
+    # Add MIYA metrics if available
+    if miya_data is not None:
+        if team1_name in miya_data:
+            result["team1"]["WORTH"] = team1_worth
+            result["team1"]["PRIME"] = team1_prime
+            result["team1"]["ROAD"] = team1_road
+            result["team1"]["NERVE"] = team1_nerve
+        
+        if team2_name in miya_data:
+            result["team2"]["WORTH"] = team2_worth
+            result["team2"]["PRIME"] = team2_prime
+            result["team2"]["ROAD"] = team2_road
+            result["team2"]["NERVE"] = team2_nerve
+    
+    return result
 
 def print_matchup_results(results):
     """
@@ -286,9 +366,28 @@ if __name__ == "__main__":
     matchups_df = pd.read_excel('matchups.xlsx')
     results_df = matchups_df.copy()
     
-    # Add columns for predicted winner and confidence
+    # Add columns for predicted winner, confidence, scores and MIYA metrics
     results_df['predicted_winner'] = None
     results_df['confidence'] = None
+    results_df['predicted_score'] = None
+    
+    # Add columns for Team 1 MIYA metrics
+    results_df['team1_WORTH'] = None
+    results_df['team1_PRIME'] = None
+    results_df['team1_ROAD'] = None
+    results_df['team1_NERVE'] = None
+    
+    # Add columns for Team 2 MIYA metrics
+    results_df['team2_WORTH'] = None
+    results_df['team2_PRIME'] = None
+    results_df['team2_ROAD'] = None
+    results_df['team2_NERVE'] = None
+    
+    # Add advantage columns
+    results_df['WORTH_advantage'] = None
+    results_df['PRIME_advantage'] = None
+    results_df['ROAD_advantage'] = None
+    results_df['NERVE_advantage'] = None
 
     for index, row in matchups_df.iterrows():
         team1 = row['team_1']
@@ -303,10 +402,33 @@ if __name__ == "__main__":
             # Store the prediction results
             results_df.at[index, 'predicted_winner'] = prediction['prediction']['winner']
             results_df.at[index, 'confidence'] = prediction['prediction']['win_probability']
+            results_df.at[index, 'predicted_score'] = prediction['prediction']['score']
+            
+            # Store MIYA metrics for team 1 if available
+            if 'WORTH' in prediction['team1']:
+                results_df.at[index, 'team1_WORTH'] = prediction['team1']['WORTH']
+                results_df.at[index, 'team1_PRIME'] = prediction['team1']['PRIME']
+                results_df.at[index, 'team1_ROAD'] = prediction['team1']['ROAD']
+                results_df.at[index, 'team1_NERVE'] = prediction['team1']['NERVE']
+            
+            # Store MIYA metrics for team 2 if available
+            if 'WORTH' in prediction['team2']:
+                results_df.at[index, 'team2_WORTH'] = prediction['team2']['WORTH']
+                results_df.at[index, 'team2_PRIME'] = prediction['team2']['PRIME']
+                results_df.at[index, 'team2_ROAD'] = prediction['team2']['ROAD']
+                results_df.at[index, 'team2_NERVE'] = prediction['team2']['NERVE']
+            
+            # Calculate and store advantages (team1 - team2)
+            if 'WORTH' in prediction['team1'] and 'WORTH' in prediction['team2']:
+                results_df.at[index, 'WORTH_advantage'] = prediction['team1']['WORTH'] - prediction['team2']['WORTH']
+                results_df.at[index, 'PRIME_advantage'] = prediction['team1']['PRIME'] - prediction['team2']['PRIME']
+                results_df.at[index, 'ROAD_advantage'] = prediction['team1']['ROAD'] - prediction['team2']['ROAD']
+                results_df.at[index, 'NERVE_advantage'] = prediction['team1']['NERVE'] - prediction['team2']['NERVE']
             
             # Print progress
             print(f"Processed matchup {index+1}/{len(matchups_df)}: {team1} ({seed1}) vs {team2} ({seed2})")
             print(f"  Predicted winner: {prediction['prediction']['winner']} with {prediction['prediction']['win_probability']:.2%} confidence")
+            print_matchup_results(prediction)
         except Exception as e:
             print(f"Error processing matchup {index+1}: {e}")
 
@@ -316,7 +438,6 @@ if __name__ == "__main__":
     if not os.path.exists(predictions_dir):
         os.makedirs(predictions_dir)
     
-    # Create filename with timestamp
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     output_file = os.path.join(predictions_dir, f'prediction_results_{timestamp}.xlsx')
     
