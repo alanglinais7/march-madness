@@ -1,5 +1,4 @@
 import pandas as pd
-import numpy as np
 from team_dictionary import get_teams_dictionary
 from datetime import datetime
 import os
@@ -195,17 +194,26 @@ def predict_winner(team1_name, team2_name, torvik_data=None, miya_data=None):
         team1_key = team1_name.replace(' ', '_')
         team2_key = team2_name.replace(' ', '_')
         
+        #if any metric is too high, artificially lower it. Occurs within mid-majors
         if team1_key in miya_data:
             team1_worth = miya_data[team1_key].get('WORTH', 0)
+            if team1_worth == 1:
+                team1_worth = .25
             team1_prime = miya_data[team1_key].get('PRIME', 0)
             team1_road = miya_data[team1_key].get('ROAD', 0)
             team1_nerve = miya_data[team1_key].get('NERVE', 0)
+            if team1_nerve == 1:
+                team1_nerve = .8
         
         if team2_key in miya_data:
             team2_worth = miya_data[team2_key].get('WORTH', 0)
+            if team2_worth == 1:
+                team2_worth = .25
             team2_prime = miya_data[team2_key].get('PRIME', 0)
             team2_road = miya_data[team2_key].get('ROAD', 0)
             team2_nerve = miya_data[team2_key].get('NERVE', 0)
+            if team2_nerve == 1:
+                team2_nerve = .8
 
     """
     Debugging for teams with a space in their name
@@ -224,14 +232,14 @@ def predict_winner(team1_name, team2_name, torvik_data=None, miya_data=None):
     # Calculate win probability using absolute metrics instead of advantages
     # This makes the model symmetric regardless of team order
     win_prob = 0.5 + (
-        0.05 * (team1_win_pct - team2_win_pct) +
-        0.1 * ((team1_offense - team2_defense) / 100) +
-        0.1 * ((team2_offense - team1_defense) / -100) +
-        0.25 * power_diff +
-        0.05 * (team1_worth - team2_worth) +
-        0.15 * (team1_prime - team2_prime) +
-        0.05 * (team1_road - team2_road) +
-        0.05 * (team1_nerve - team2_nerve)
+        0.03 * (team1_win_pct - team2_win_pct) +
+        0.07 * ((team1_offense - team2_defense) / 100) +
+        0.07 * ((team2_offense - team1_defense) / -100) +
+        0.22 * power_diff +
+        0.04 * (team1_worth - team2_worth) +
+        0.06 * (team1_prime - team2_prime) +
+        0.02 * (team1_road - team2_road) +
+        0.02 * (team1_nerve - team2_nerve)
     )
     
     # Ensure probability is between 0 and 1
@@ -249,7 +257,7 @@ def predict_winner(team1_name, team2_name, torvik_data=None, miya_data=None):
             team2_predicted_score += 1
     
     # For close games (win probability between 40% and 60%)
-    if win_prob > .4 and win_prob < .6:
+    if win_prob > .45 and win_prob < .55:
         # Calculate how close the game is (0 = exactly 50%, 1 = at 40% or 60%)
         closeness = 1 - abs(win_prob - 0.5) / 0.1
         
@@ -277,8 +285,8 @@ def predict_winner(team1_name, team2_name, torvik_data=None, miya_data=None):
             
         # Apply NERVE adjustment
         nerve_magnitude = min(abs(nerve_advantage), 0.5)
-        base_nerve_adjustment = 0.03 + (0.04 * closeness)
-        nerve_adjustment = base_nerve_adjustment * (0.5 + nerve_magnitude)
+        base_nerve_adjustment = 0.02 + (0.04 * closeness)
+        nerve_adjustment = base_nerve_adjustment * (0.35 + nerve_magnitude)
         
         if nerve_advantage > 0:
             win_prob += nerve_adjustment
