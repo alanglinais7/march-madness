@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>March Madness Bracket</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            max-width: 1800px;
+            margin: 0 auto;
+            padding: 20px;
+            overflow-x: auto;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #0039a6;
+            margin-bottom: 20px;
+        }
+        
+        .bracket {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+        }
+        
+        .round {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-around;
+            width: 100%;
+            min-width: 0;
+        }
+        
+        .round-title {
+            text-align: center;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #333;
+            font-size: clamp(0.8rem, 1vw, 1rem);
+        }
+        
+        .spacer {
+            flex-grow: 1;
+        }
+        
+        .game {
+            margin: 4px 1%;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            background-color: #fff;
+            position: relative;
+            width: 98%;
+        }
+        
+        .team {
+            display: flex;
+            padding: 6px 4px;
+            border-bottom: 1px solid #eee;
+            align-items: center;
+        }
+        
+        .team:last-child {
+            border-bottom: none;
+        }
+        
+        .seed {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            line-height: 20px;
+            text-align: center;
+            background-color: #f0f0f0;
+            border-radius: 4px;
+            margin-right: 8px;
+            font-size: 11px;
+            font-weight: bold;
+            color: #333;
+            flex-shrink: 0;
+        }
+        
+        .team-name {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            font-size: clamp(0.7rem, 1vw, 0.9rem);
+            flex: 1;
+        }
+        
+        .winner {
+            font-weight: bold;
+            background-color: #e9f5f9;
+        }
+        
+        .champion-box {
+            margin: 20px auto;
+            padding: 15px;
+            text-align: center;
+            max-width: 300px;
+            border: 3px solid #ffd700;
+            border-radius: 8px;
+            background-color: #fff9e6;
+        }
+        
+        .champion-title {
+            font-size: 18px;
+            color: #333;
+            margin-bottom: 10px;
+        }
+        
+        .champion-name {
+            font-size: 24px;
+            font-weight: bold;
+            color: #0039a6;
+        }
+        
+        .connector {
+            position: absolute;
+            right: -10px;
+            width: 10px;
+            border-top: 1px solid #ccc;
+        }
+        
+        .connector-up {
+            border-right: 1px solid #ccc;
+            top: 50%;
+            height: 100%;
+        }
+        
+        .connector-down {
+            border-right: 1px solid #ccc;
+            bottom: 50%;
+            height: 100%;
+        }
+        
+        .final-four-box {
+            margin-top: 30px;
+            border-top: 2px solid #0039a6;
+            padding-top: 10px;
+        }
+        
+        .region-label {
+            text-align: center;
+            font-weight: bold;
+            color: #0039a6;
+            margin-bottom: 5px;
+            font-size: 14px;
+        }
+        
+        .confidence-high {
+            background-color: #d4edda;
+        }
+        
+        .confidence-medium {
+            background-color: #e9f5f9;
+        }
+        
+        .confidence-low {
+            background-color: #fff3cd;
+        }
+        
+        .round-section {
+            width: 100%;
+            margin-bottom: 20px;
+        }
+        
+        .final-four-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 50px;
+        }
+        
+        .final-four-games {
+            display: flex;
+            justify-content: center;
+            width: 100%;
+            margin-bottom: 20px;
+        }
+        
+        .final-four-game {
+            margin: 0 30px;
+            width: 220px;
+        }
+        
+        .championship-game {
+            width: 220px;
+        }
+        
+        .final-four-title,
+        .championship-title {
+            text-align: center;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #0039a6;
+        }
+        
+        .score {
+            margin-left: auto;
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 50px;
+            font-size: 18px;
+            color: #666;
+        }
+        
+        .file-input-container {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .file-input {
+            margin-bottom: 10px;
+        }
+        
+        .error-message {
+            color: #dc3545;
+            text-align: center;
+            margin: 20px 0;
+            padding: 10px;
+            border: 1px solid #dc3545;
+            border-radius: 4px;
+            background-color: #f8d7da;
+        }
+        
+        .region-container {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            width: 100%;
+        }
+        
+        .region {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        @media (min-width: 1600px) {
+            .region-container {
+                gap: 20px;
+            }
+            
+            .game {
+                margin: 4px 8px;
+            }
+            
+            .team {
+                padding: 8px 10px;
+            }
+        }
+        
+        @media (max-width: 1200px) {
+            .region-container {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .region-container {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>March Madness Bracket Visualization</h1>
+        
+        <div class="file-input-container">
+            <input type="file" id="fileInput" class="file-input" accept=".xlsx,.xls" />
+            <div>
+                <button id="loadBtn">Load Bracket</button>
+                <p><small>Select your Excel file (prediction_results or final_results)</small></p>
+            </div>
+        </div>
+        
+        <div id="error-container" style="display: none;" class="error-message"></div>
+        <div id="loading" class="loading" style="display: none;">Processing data...</div>
+        <div id="bracket-container" style="display: none;">
+            <div class="region-container">
+                <div class="region">
+                    <div class="bracket">
+                        <!-- Rounds will be generated here -->
+                    </div>
+                </div>
+                <div class="region">
+                    <div class="bracket">
+                        <!-- Rounds will be generated here -->
+                    </div>
+                </div>
+                <div class="region">
+                    <div class="bracket">
+                        <!-- Rounds will be generated here -->
+                    </div>
+                </div>
+                <div class="region">
+                    <div class="bracket">
+                        <!-- Rounds will be generated here -->
+                    </div>
+                </div>
+            </div>
+            
+            <div class="final-four-container">
+                <h2>Final Four & Championship</h2>
+                <div class="final-four-games">
+                    <!-- Final Four games will be generated here -->
+                </div>
+                
+                <div class="championship-game">
+                    <!-- Championship game will be generated here -->
+                </div>
+                
+                <div class="champion-box">
+                    <div class="champion-title">CHAMPION</div>
+                    <div id="champion" class="champion-name"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('loadBtn').addEventListener('click', function() {
+            const fileInput = document.getElementById('fileInput');
+            if (fileInput.files.length === 0) {
+                showError("Please select an Excel file first.");
+                return;
+            }
+            
+            const file = fileInput.files[0];
+            processExcelFile(file);
+        });
+        
+        function showError(message) {
+            const errorContainer = document.getElementById('error-container');
+            errorContainer.textContent = message;
+            errorContainer.style.display = 'block';
+            
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('bracket-container').style.display = 'none';
+        }
+        
+        function hideError() {
+            document.getElementById('error-container').style.display = 'none';
+        }
+        
+        async function processExcelFile(file) {
+            hideError();
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('bracket-container').style.display = 'none';
+            
+            try {
+                const data = await readExcelFile(file);
+                const bracketData = processData(data);
+                renderBracket(bracketData);
+                
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('bracket-container').style.display = 'block';
+            } catch (error) {
+                console.error("Error processing file:", error);
+                showError("Error processing the Excel file. Please make sure it's in the correct format.");
+            }
+        }
+        
+        function readExcelFile(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                
+                reader.onload = function(e) {
+                    try {
+                        const data = new Uint8Array(e.target.result);
+                        const workbook = XLSX.read(data, { type: 'array' });
+                        
+                        // Get the first sheet
+                        const firstSheetName = workbook.SheetNames[0];
+                        const worksheet = workbook.Sheets[firstSheetName];
+                        
+                        // Convert to JSON
+                        const jsonData = XLSX.utils.sheet_to_json(worksheet);
+                        resolve(jsonData);
+                    } catch (error) {
+                        reject(error);
+                    }
+                };
+                
+                reader.onerror = function(error) {
+                    reject(error);
+                };
+                
+                reader.readAsArrayBuffer(file);
+            });
+        }
+        
+        function processData(data) {
+            // Tournament has 6 rounds with 63 total games (32+16+8+4+2+1)
+            
+            // Check if we have enough games
+            if (data.length !== 63) {
+                throw new Error(`Expected 63 games, but found ${data.length} games in the file.`);
+            }
+            
+            // First round: 32 games (games 0-31)
+            // Second round: 16 games (games 32-47)
+            // Sweet 16: 8 games (games 48-55)
+            // Elite 8: 4 games (games 56-59)
+            // Final Four: 2 games (games 60-61)
+            // Championship: 1 game (game 62)
+            
+            // From our earlier analysis:
+            // Region 1: Games 0-7 (first round)
+            // Region 2: Games 8-15 (first round)
+            // Region 3: Games 16-23 (first round)
+            // Region 4: Games 24-31 (first round)
+            
+            const regions = [
+                {
+                    name: "Region 1",
+                    firstRound: data.slice(0, 8),
+                    secondRound: data.slice(32, 36),
+                    sweetSixteen: data.slice(48, 50),
+                    eliteEight: data[56],
+                    winner: data[56].predicted_winner
+                },
+                {
+                    name: "Region 2",
+                    firstRound: data.slice(8, 16),
+                    secondRound: data.slice(36, 40),
+                    sweetSixteen: data.slice(50, 52),
+                    eliteEight: data[57],
+                    winner: data[57].predicted_winner
+                },
+                {
+                    name: "Region 3",
+                    firstRound: data.slice(16, 24),
+                    secondRound: data.slice(40, 44),
+                    sweetSixteen: data.slice(52, 54),
+                    eliteEight: data[58],
+                    winner: data[58].predicted_winner
+                },
+                {
+                    name: "Region 4",
+                    firstRound: data.slice(24, 32),
+                    secondRound: data.slice(44, 48),
+                    sweetSixteen: data.slice(54, 56),
+                    eliteEight: data[59],
+                    winner: data[59].predicted_winner
+                }
+            ];
+            
+            const finalFour = data.slice(60, 62);
+            const championship = data[62];
+            const champion = championship.predicted_winner;
+            
+            return {
+                regions: regions,
+                finalFour: finalFour,
+                championship: championship,
+                champion: champion
+            };
+        }
+        
+        function renderBracket(data) {
+            // Clear existing content in all bracket containers
+            const bracketContainers = document.querySelectorAll('.region .bracket');
+            bracketContainers.forEach(container => {
+                container.innerHTML = '';
+            });
+            
+            // Create the 4 regions
+            for (let regionIndex = 0; regionIndex < data.regions.length; regionIndex++) {
+                const region = data.regions[regionIndex];
+                const regionDiv = document.createElement('div');
+                regionDiv.className = 'round-section';
+                
+                // Add region label
+                const regionLabel = document.createElement('div');
+                regionLabel.className = 'region-label';
+                regionLabel.textContent = region.name;
+                regionDiv.appendChild(regionLabel);
+                
+                // Process each round for this region
+                addRoundToRegion(regionDiv, "First Round", region.firstRound);
+                addRoundToRegion(regionDiv, "Second Round", region.secondRound);
+                addRoundToRegion(regionDiv, "Sweet 16", region.sweetSixteen);
+                addRoundToRegion(regionDiv, "Elite 8", [region.eliteEight]);
+                
+                // Add to the correct region container (index 0, 1, 2, or 3)
+                const targetBracket = document.querySelectorAll('.region .bracket')[regionIndex];
+                targetBracket.appendChild(regionDiv);
+            }
+            
+            // Final Four and Championship
+            renderFinalFour(data);
+            
+            // Set the champion
+            document.getElementById('champion').textContent = data.champion;
+        }
+        
+        function addRoundToRegion(regionDiv, roundName, games) {
+            const roundDiv = document.createElement('div');
+            roundDiv.className = 'round';
+            
+            // Add round title
+            const roundTitle = document.createElement('div');
+            roundTitle.className = 'round-title';
+            roundTitle.textContent = roundName;
+            roundDiv.appendChild(roundTitle);
+            
+            // Add games for this round
+            for (let i = 0; i < games.length; i++) {
+                const gameData = games[i];
+                
+                // Create game element
+                const gameDiv = createGameElement(gameData);
+                roundDiv.appendChild(gameDiv);
+                
+                // Add spacer between games if not the last game
+                if (i < games.length - 1) {
+                    const spacer = document.createElement('div');
+                    spacer.className = 'spacer';
+                    roundDiv.appendChild(spacer);
+                }
+            }
+            
+            regionDiv.appendChild(roundDiv);
+        }
+        
+        // Create a game element
+        function createGameElement(gameData) {
+            const gameDiv = document.createElement('div');
+            gameDiv.className = 'game';
+            
+            // Create team 1 element
+            const team1Div = document.createElement('div');
+            team1Div.className = 'team';
+            if (gameData.predicted_winner === gameData.team_1) {
+                team1Div.classList.add('winner');
+                
+                // Add confidence-based class
+                const confidence = gameData.confidence;
+                if (confidence > 0.65) {
+                    team1Div.classList.add('confidence-high');
+                } else if (confidence > 0.55) {
+                    team1Div.classList.add('confidence-medium');
+                } else {
+                    team1Div.classList.add('confidence-low');
+                }
+            }
+            
+            const seed1 = document.createElement('span');
+            seed1.className = 'seed';
+            seed1.textContent = gameData.seed_1;
+            
+            const team1Name = document.createElement('span');
+            team1Name.className = 'team-name';
+            team1Name.textContent = gameData.team_1;
+            
+            team1Div.appendChild(seed1);
+            team1Div.appendChild(team1Name);
+            
+            if (gameData.predicted_score) {
+                const score1 = document.createElement('span');
+                score1.className = 'score';
+                score1.textContent = gameData.predicted_score.split('-')[0];
+                team1Div.appendChild(score1);
+            }
+            
+            // Create team 2 element
+            const team2Div = document.createElement('div');
+            team2Div.className = 'team';
+            if (gameData.predicted_winner === gameData.team_2) {
+                team2Div.classList.add('winner');
+                
+                // Add confidence-based class
+                const confidence = gameData.confidence;
+                if (confidence > 0.65) {
+                    team2Div.classList.add('confidence-high');
+                } else if (confidence > 0.55) {
+                    team2Div.classList.add('confidence-medium');
+                } else {
+                    team2Div.classList.add('confidence-low');
+                }
+            }
+            
+            const seed2 = document.createElement('span');
+            seed2.className = 'seed';
+            seed2.textContent = gameData.seed_2;
+            
+            const team2Name = document.createElement('span');
+            team2Name.className = 'team-name';
+            team2Name.textContent = gameData.team_2;
+            
+            team2Div.appendChild(seed2);
+            team2Div.appendChild(team2Name);
+            
+            if (gameData.predicted_score) {
+                const score2 = document.createElement('span');
+                score2.className = 'score';
+                score2.textContent = gameData.predicted_score.split('-')[1];
+                team2Div.appendChild(score2);
+            }
+            
+            gameDiv.appendChild(team1Div);
+            gameDiv.appendChild(team2Div);
+            
+            return gameDiv;
+        }
+        
+        // Render Final Four and Championship
+        function renderFinalFour(data) {
+            const finalFourContainer = document.querySelector('.final-four-games');
+            finalFourContainer.innerHTML = '';
+            
+            // Final Four games
+            for (let i = 0; i < data.finalFour.length; i++) {
+                const gameData = data.finalFour[i];
+                
+                const gameContainer = document.createElement('div');
+                gameContainer.className = 'final-four-game';
+                
+                const gameTitle = document.createElement('div');
+                gameTitle.className = 'final-four-title';
+                gameTitle.textContent = `Final Four ${i + 1}`;
+                
+                const gameDiv = createGameElement(gameData);
+                
+                gameContainer.appendChild(gameTitle);
+                gameContainer.appendChild(gameDiv);
+                finalFourContainer.appendChild(gameContainer);
+            }
+            
+            // Championship game
+            const championshipContainer = document.querySelector('.championship-game');
+            championshipContainer.innerHTML = '';
+            
+            const champTitle = document.createElement('div');
+            champTitle.className = 'championship-title';
+            champTitle.textContent = 'Championship';
+            
+            const champGame = createGameElement(data.championship);
+            
+            championshipContainer.appendChild(champTitle);
+            championshipContainer.appendChild(champGame);
+        }
+        
+        // Preload default file if available
+        window.addEventListener('load', function() {
+            // You can add auto-loading logic here if needed
+            // For example, checking for a file named "final_results.xlsx"
+        });
+    </script>
+</body>
+</html>

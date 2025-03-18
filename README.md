@@ -87,6 +87,10 @@ The exported data includes:
 - `barthag`: Power rating (probability of beating average team)
 - Additional advanced metrics from Torvik's system
 
+## Visualizing your bracket
+
+To showcase your bracket for screenshots and sharing, simply launch the bracket.html file in the browswer of your choice and then load in your results file in the format returned by the head_to_head script. Then hit load file.
+
 ## Contributing
 
 Feel free to open issues or submit pull requests with improvements. 
