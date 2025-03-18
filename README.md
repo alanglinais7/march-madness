@@ -13,7 +13,7 @@ This repository contains tools for collecting and analyzing college basketball d
   - Advanced metrics (adjusted offense/defense)
 - Exports data to Excel for further analysis
 - Predicts head-to-head matchup outcomes with score predictions
-- Interactive mode for comparing any two teams
+- Interactive mode for comparing any two teams (Need to enable by uncommenting code, also possible via adding to matchups.xslx)
 
 ## Getting Started
 
@@ -38,6 +38,8 @@ This will:
 2. Process and clean the data
 3. Save it to an Excel file named `torvik_data_2025.xlsx`
 
+In addition, you'll need to download all of Evan Miya's game analysis CSVs to a folder called team_data. Ensure all schools with spaces are seperated by an underscore (i.e. Michigan State -> Michigan_State.csv)
+
 #### Head-to-Head Predictions
 
 To predict matchup outcomes:
@@ -61,10 +63,10 @@ The head-to-head prediction model uses:
 - Win-loss record
 
 and some custom calcualted metrics
-- WORTH (Wins Over Ranked Tournament-Headed Squads)
-- PRIME (Performance Rating In Major Engagements) 
-- ROAD (Reliability Outside Accustomed Domain) 
-- NERVE (Narrow Endgame Resolution and Victory Evaluation)
+- `WORTH` (Wins Over Ranked Tournament-Headed Squads)
+- `PRIME` (Performance Rating In Major Engagements) 
+- `ROAD` (Reliability Outside Accustomed Domain) 
+- `NERVE` (Narrow Endgame Resolution and Victory Evaluation)
 
 The model calculates:
 - Win probability for each team
@@ -95,4 +97,4 @@ This project is open source and available under the MIT License.
 
 ## Acknowledgments
 
-- Data sourced from [Bart Torvik's college basketball statistics](http://barttorvik.com) and Evan Miya's website (https://evanmiya.com). You'll need a folder with all team's data stored in a folder called team_data. Ensure all schools with spaces are seperated by an underscore (i.e. Michigan State -> Michigan_State.csv)
+- Data sourced from [Bart Torvik's college basketball statistics](http://barttorvik.com) and [Evan Miya's website](https://evanmiya.com). 

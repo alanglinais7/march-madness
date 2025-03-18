@@ -191,17 +191,35 @@ def predict_winner(team1_name, team2_name, torvik_data=None, miya_data=None):
     team2_nerve = 0
     
     if miya_data is not None:
-        if team1_name in miya_data:
-            team1_worth = miya_data[team1_name].get('WORTH', 0)
-            team1_prime = miya_data[team1_name].get('PRIME', 0)
-            team1_road = miya_data[team1_name].get('ROAD', 0)
-            team1_nerve = miya_data[team1_name].get('NERVE', 0)
+        # Convert team names to the format used in miya_data (replace spaces with underscores)
+        team1_key = team1_name.replace(' ', '_')
+        team2_key = team2_name.replace(' ', '_')
         
-        if team2_name in miya_data:
-            team2_worth = miya_data[team2_name].get('WORTH', 0)
-            team2_prime = miya_data[team2_name].get('PRIME', 0)
-            team2_road = miya_data[team2_name].get('ROAD', 0)
-            team2_nerve = miya_data[team2_name].get('NERVE', 0)
+        if team1_key in miya_data:
+            team1_worth = miya_data[team1_key].get('WORTH', 0)
+            team1_prime = miya_data[team1_key].get('PRIME', 0)
+            team1_road = miya_data[team1_key].get('ROAD', 0)
+            team1_nerve = miya_data[team1_key].get('NERVE', 0)
+        
+        if team2_key in miya_data:
+            team2_worth = miya_data[team2_key].get('WORTH', 0)
+            team2_prime = miya_data[team2_key].get('PRIME', 0)
+            team2_road = miya_data[team2_key].get('ROAD', 0)
+            team2_nerve = miya_data[team2_key].get('NERVE', 0)
+
+    """
+    Debugging for teams with a space in their name
+    """
+    # if team2_name == "Texas Tech":
+    #     print("\nTexas Tech Metrics:")
+    #     print(f"Win Percentage: {team2_win_pct:.3f}")
+    #     print(f"Adjusted Offense: {team2_offense:.1f}")
+    #     print(f"Adjusted Defense: {team2_defense:.1f}")
+    #     print(f"Power Rating: {team2_power:.3f}")
+    #     print(f"WORTH: {team2_worth:.3f}")
+    #     print(f"PRIME: {team2_prime:.3f}")
+    #     print(f"ROAD: {team2_road:.3f}")
+    #     print(f"NERVE: {team2_nerve:.3f}")
     
     # Calculate win probability using absolute metrics instead of advantages
     # This makes the model symmetric regardless of team order
@@ -308,17 +326,21 @@ def predict_winner(team1_name, team2_name, torvik_data=None, miya_data=None):
     
     # Add MIYA metrics if available
     if miya_data is not None:
-        if team1_name in miya_data:
+        if team1_key in miya_data:
             result["team1"]["WORTH"] = team1_worth
             result["team1"]["PRIME"] = team1_prime
             result["team1"]["ROAD"] = team1_road
             result["team1"]["NERVE"] = team1_nerve
         
-        if team2_name in miya_data:
+        if team2_key in miya_data:
             result["team2"]["WORTH"] = team2_worth
             result["team2"]["PRIME"] = team2_prime
             result["team2"]["ROAD"] = team2_road
             result["team2"]["NERVE"] = team2_nerve
+    
+    #debugging
+    # if team2_name == "Michigan State":
+    #     print(result)
     
     return result
 
@@ -428,7 +450,7 @@ if __name__ == "__main__":
             # Print progress
             print(f"Processed matchup {index+1}/{len(matchups_df)}: {team1} ({seed1}) vs {team2} ({seed2})")
             print(f"  Predicted winner: {prediction['prediction']['winner']} with {prediction['prediction']['win_probability']:.2%} confidence")
-            print_matchup_results(prediction)
+            # print_matchup_results(prediction)
         except Exception as e:
             print(f"Error processing matchup {index+1}: {e}")
 
@@ -444,6 +466,8 @@ if __name__ == "__main__":
     # Save the file
     results_df.to_excel(output_file, index=False)
     print(f"\nResults saved to {output_file}")
+
+    # print(teams_dict)
 
     #optional interactive mode
     # if data is not None:
